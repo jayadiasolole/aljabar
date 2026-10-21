@@ -1,0 +1,1671 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PIXEL LAB PRO — Image Processing</title>
+
+<style>
+:root {
+  --bg: #f2efe7;
+  --ink: #171717;
+  --yellow: #ffe64d;
+  --pink: #ff91b9;
+  --blue: #9cddff;
+  --green: #9cf5a5;
+  --purple: #c7b5ff;
+  --white: #fffdf7;
+  --muted: #696969;
+  --border: 3px solid var(--ink);
+  --shadow: 6px 6px 0 var(--ink);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 25px 16px 60px;
+  background:
+    radial-gradient(#c7c1b6 1px, transparent 1px),
+    var(--bg);
+  background-size: 17px 17px;
+  color: var(--ink);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+button, input, select { font: inherit; }
+
+.container {
+  max-width: 1200px;
+  margin: auto;
+}
+
+header {
+  background: var(--yellow);
+  border: 4px solid var(--ink);
+  box-shadow: 9px 9px 0 var(--ink);
+  padding: 28px;
+  margin-bottom: 28px;
+}
+
+.eyebrow {
+  display: inline-block;
+  border: 2px solid var(--ink);
+  background: white;
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 1.5px;
+}
+
+h1 {
+  margin: 20px 0 10px;
+  font-size: clamp(42px, 8vw, 82px);
+  line-height: .9;
+  letter-spacing: -4px;
+  font-weight: 1000;
+}
+
+header p {
+  max-width: 680px;
+  line-height: 1.7;
+}
+
+.top-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 25px;
+}
+
+.top-stat {
+  background: white;
+  border: 2px solid var(--ink);
+  padding: 12px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.top-stat strong {
+  display: block;
+  font-size: 20px;
+  margin-top: 6px;
+  overflow-wrap: anywhere;
+}
+
+.panel {
+  background: var(--white);
+  border: var(--border);
+  box-shadow: var(--shadow);
+  padding: 24px;
+  margin-bottom: 25px;
+  min-width: 0;
+}
+
+.section-heading {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.step-no {
+  width: 50px;
+  height: 50px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  border: var(--border);
+  background: var(--yellow);
+  font-size: 22px;
+  font-weight: 1000;
+}
+
+.heading-copy { flex: 1; }
+
+h2 {
+  margin: 0;
+  font-size: clamp(20px, 3vw, 27px);
+  letter-spacing: -.5px;
+}
+
+.subheading {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.status {
+  padding: 7px 10px;
+  border: 2px solid var(--ink);
+  background: #e0e0e0;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.status.done { background: var(--green); }
+.status.active { background: var(--yellow); }
+
+.progress-track {
+  height: 18px;
+  border: 3px solid var(--ink);
+  background: white;
+  margin: 20px 0 10px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  width: 0;
+  height: 100%;
+  background: var(--green);
+  transition: width .3s ease;
+}
+
+.progress-caption {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 900;
+  gap: 10px;
+}
+
+.dropzone {
+  display: block;
+  border: 3px dashed var(--ink);
+  padding: 35px 16px;
+  background: #fff8d5;
+  text-align: center;
+  cursor: pointer;
+  transition: .15s;
+}
+
+.dropzone:hover { background: #fff0a0; }
+
+.dropzone .emoji { font-size: 42px; }
+.dropzone strong { display: block; margin: 12px 0; }
+
+.dropzone p {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+input[type="file"] { display: none; }
+
+button, .fake-button {
+  border: 3px solid var(--ink);
+  background: var(--yellow);
+  color: var(--ink);
+  padding: 12px 16px;
+  font-size: 13px;
+  font-weight: 900;
+  box-shadow: 4px 4px 0 var(--ink);
+  cursor: pointer;
+  transition: transform .12s, box-shadow .12s;
+}
+
+button:hover:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 var(--ink);
+}
+
+button:active:not(:disabled) {
+  transform: translate(4px, 4px);
+  box-shadow: none;
+}
+
+button:disabled {
+  background: #e1e1e1;
+  color: #858585;
+  border-color: #999;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.pink { background: var(--pink); }
+.blue { background: var(--blue); }
+.green { background: var(--green); }
+.purple { background: var(--purple); }
+.dark { background: var(--ink); color: white; }
+
+.action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 20px;
+  align-items: center;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.preview-box {
+  min-width: 0;
+  border: var(--border);
+  background: #e9e9e9;
+  padding: 12px;
+}
+
+.preview-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.preview-box canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 430px;
+  object-fit: contain;
+  background: white;
+}
+
+.placeholder {
+  min-height: 180px;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.info-box {
+  background: white;
+  border: 2px solid var(--ink);
+  padding: 15px;
+  font-size: 13px;
+  line-height: 1.9;
+  overflow-wrap: anywhere;
+}
+
+.info-box strong { font-weight: 900; }
+
+.control {
+  border: 2px solid var(--ink);
+  background: #fff;
+  padding: 14px;
+  margin-top: 15px;
+  min-width: 0;
+}
+
+.control label, .control-label {
+  display: block;
+  font-weight: 900;
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+
+select, input[type="number"], input[type="range"] {
+  width: 100%;
+}
+
+select, input[type="number"] {
+  border: 2px solid var(--ink);
+  background: white;
+  padding: 11px;
+  color: var(--ink);
+}
+
+input[type="range"] {
+  accent-color: #171717;
+  cursor: pointer;
+}
+
+.help {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.7;
+  margin-top: 10px;
+}
+
+.callout {
+  border: 2px solid var(--ink);
+  background: #fff5b5;
+  padding: 14px;
+  font-size: 13px;
+  line-height: 1.7;
+  margin-top: 15px;
+}
+
+.formula {
+  font-family: "Courier New", monospace;
+  font-weight: 900;
+  line-height: 2;
+  overflow-wrap: anywhere;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 15px 0;
+}
+
+.chip {
+  border: 2px solid var(--ink);
+  background: var(--blue);
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.matrix-wrap {
+  max-height: 460px;
+  overflow: auto;
+  border: var(--border);
+  background: white;
+}
+
+.matrix {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+  font: 13px "Courier New", monospace;
+  text-align: center;
+}
+
+.matrix th, .matrix td {
+  padding: 10px 8px;
+  border-right: 1px solid #c7c7c7;
+  border-bottom: 1px solid #c7c7c7;
+  white-space: nowrap;
+}
+
+.matrix th {
+  background: var(--yellow);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  font-weight: 900;
+}
+
+.matrix th:first-child {
+  left: 0;
+  z-index: 3;
+}
+
+.matrix tbody th {
+  left: 0;
+  z-index: 1;
+}
+
+.matrix td {
+  font-weight: 700;
+}
+
+.matrix td:hover {
+  outline: 3px solid var(--pink);
+  outline-offset: -3px;
+}
+
+.histogram-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: end;
+  margin-bottom: 16px;
+}
+
+.histogram-toolbar .control {
+  flex: 1;
+  min-width: 140px;
+  margin: 0;
+}
+
+.histogram-frame {
+  background: white;
+  border: 3px solid var(--ink);
+  padding: 12px;
+}
+
+.histogram-frame canvas {
+  display: block;
+  width: 100%;
+  height: 560px;
+  max-height: none;
+  background: white;
+  cursor: crosshair;
+}
+
+.chart-axis-legend {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 900;
+  margin-top: 8px;
+}
+
+.chart-hint {
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--muted);
+  margin-top: 12px;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.stat {
+  border: 2px solid var(--ink);
+  padding: 14px;
+  background: var(--pink);
+  min-width: 0;
+}
+
+.stat:nth-child(2) { background: var(--green); }
+.stat:nth-child(3) { background: var(--blue); }
+.stat:nth-child(4) { background: var(--purple); }
+
+.stat small {
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.5;
+  display: block;
+}
+
+.stat strong {
+  font-size: clamp(18px, 2.5vw, 26px);
+  display: block;
+  margin-top: 9px;
+  overflow-wrap: anywhere;
+}
+
+footer {
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.8;
+  margin-top: 35px;
+}
+
+[hidden] { display: none !important; }
+
+@media (max-width: 700px) {
+  body { padding: 14px 10px 35px; }
+  header, .panel { padding: 16px; }
+  h1 { letter-spacing: -2px; }
+  .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .histogram-frame canvas { height: 400px; }
+  .step-no { width: 42px; height: 42px; }
+  .matrix { font-size: 11px; }
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<header>
+  <span class="eyebrow">DIGITAL IMAGE PROCESSING / PRO EDITION</span>
+  <h1>PIXEL LAB<br>PRO.</h1>
+  <p>
+    Laboratorium pengolahan citra digital.
+    Konversi foto, analisis matriks piksel, dan eksplorasi histogram
+    dengan alur kerja bertahap.
+  </p>
+
+  <div class="top-stats">
+    <div class="top-stat">TAHAP SELESAI<strong id="completedCount">0 / 4</strong></div>
+    <div class="top-stat">RESOLUSI<strong id="resolutionStat">—</strong></div>
+    <div class="top-stat">STATUS<strong id="projectStat">MENUNGGU FOTO</strong></div>
+  </div>
+
+  <div class="progress-track">
+    <div class="progress-fill" id="progressFill"></div>
+  </div>
+  <div class="progress-caption">
+    <span>PROJECT PROGRESS</span>
+    <span id="progressText">0%</span>
+  </div>
+</header>
+
+<!-- STEP 1 -->
+<section class="panel">
+  <div class="section-heading">
+    <div class="step-no">01</div>
+    <div class="heading-copy">
+      <h2>Import Image</h2>
+      <div class="subheading">Pilih foto untuk memulai proyek pengolahan citra.</div>
+    </div>
+    <span class="status active" id="status1">MENUNGGU</span>
+  </div>
+
+  <label class="dropzone" id="dropzone" for="fileInput">
+    <div class="emoji">▧</div>
+    <strong>DROP YOUR IMAGE HERE</strong>
+    <p>Klik untuk memilih JPG, PNG, atau WebP. Maksimal 15 MB.</p>
+    <span class="fake-button">PILIH FILE FOTO</span>
+  </label>
+  <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp">
+
+  <div class="grid-2">
+    <div class="preview-box">
+      <div class="preview-title">01A / Original image</div>
+      <div id="originalPlaceholder" class="placeholder">Pratinjau foto asli muncul di sini.</div>
+      <canvas id="originalCanvas" hidden></canvas>
+    </div>
+
+    <div class="preview-box">
+      <div class="preview-title">01B / Metadata</div>
+      <div id="photoInfo" class="info-box">
+        Nama file: —<br>
+        Resolusi: —<br>
+        Ukuran file: —<br>
+        Format: —
+      </div>
+      <div class="action-row">
+        <button class="pink" id="downloadOriginalBtn" disabled>UNDUH FOTO ASLI</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STEP 2 -->
+<section class="panel">
+  <div class="section-heading">
+    <div class="step-no">02</div>
+    <div class="heading-copy">
+      <h2>Grayscale Engine</h2>
+      <div class="subheading">Ubah setiap piksel RGB menjadi satu intensitas keabuan.</div>
+    </div>
+    <span class="status" id="status2">TERKUNCI</span>
+  </div>
+
+  <div class="control">
+    <label for="grayMethod">METODE KONVERSI</label>
+    <select id="grayMethod" disabled>
+      <option value="luminance">Luminance — 0.299R + 0.587G + 0.114B</option>
+      <option value="average">Average — (R + G + B) / 3</option>
+      <option value="lightness">Lightness — (max + min) / 2</option>
+    </select>
+  </div>
+
+  <div class="grid-2">
+    <div class="preview-box">
+      <div class="preview-title">02A / Grayscale output</div>
+      <div id="grayPlaceholder" class="placeholder">Menunggu proses grayscale.</div>
+      <canvas id="grayCanvas" hidden></canvas>
+    </div>
+
+    <div class="preview-box">
+      <div class="preview-title">02B / Mathematical model</div>
+      <div class="info-box">
+        <div class="formula" id="formulaText">
+          Gray = 0.299R + 0.587G + 0.114B
+        </div>
+        <p class="help">
+          Intensitas 0 berarti hitam, sedangkan 255 berarti putih.
+          Nilai R, G, dan B disimpan dalam rentang 0–255.
+        </p>
+      </div>
+      <div class="callout">
+        <strong>CATATAN:</strong> metode konversi memengaruhi distribusi
+        intensitas dan hasil histogram.
+      </div>
+    </div>
+  </div>
+
+  <div class="action-row">
+    <button class="pink" id="grayBtn" disabled>PROSES GRAYSCALE →</button>
+    <button class="dark" id="downloadGrayBtn" disabled>UNDUH HASIL PNG</button>
+  </div>
+</section>
+
+<!-- STEP 3 -->
+<section class="panel">
+  <div class="section-heading">
+    <div class="step-no">03</div>
+    <div class="heading-copy">
+      <h2>Pixel Matrix Lab</h2>
+      <div class="subheading">Representasikan citra grayscale sebagai matriks angka.</div>
+    </div>
+    <span class="status" id="status3">TERKUNCI</span>
+  </div>
+
+  <div class="control">
+    <label for="matrixSample">RESOLUSI MATRIKS SAMPEL</label>
+    <select id="matrixSample" disabled>
+      <option value="8">8 × 8 — Ringkas</option>
+      <option value="16" selected>16 × 16 — Standar</option>
+      <option value="24">24 × 24 — Detail</option>
+      <option value="32">32 × 32 — Maksimum</option>
+    </select>
+    <p class="help">
+      Matriks merupakan sampel yang diambil merata dari gambar.
+      Data matriks tidak menggantikan piksel asli.
+    </p>
+  </div>
+
+  <div class="chips">
+    <span class="chip" id="matrixSize">DIMENSI: —</span>
+    <span class="chip" id="matrixMin">MIN: —</span>
+    <span class="chip" id="matrixMax">MAX: —</span>
+    <span class="chip" id="matrixMean">MEAN: —</span>
+  </div>
+
+  <div class="matrix-wrap">
+    <div id="matrixPlaceholder" class="placeholder">
+      Selesaikan grayscale untuk membuat matriks.
+    </div>
+    <table class="matrix" id="matrixTable" hidden></table>
+  </div>
+
+  <div class="action-row">
+    <button class="blue" id="matrixBtn" disabled>GENERATE MATRIX →</button>
+    <button id="downloadMatrixBtn" disabled>EKSPOR CSV</button>
+  </div>
+</section>
+
+<!-- STEP 4 -->
+<section class="panel">
+  <div class="section-heading">
+    <div class="step-no">04</div>
+    <div class="heading-copy">
+      <h2>Histogram Analytics</h2>
+      <div class="subheading">Visualisasikan distribusi intensitas seluruh piksel.</div>
+    </div>
+    <span class="status" id="status4">TERKUNCI</span>
+  </div>
+
+  <div class="histogram-toolbar">
+    <div class="control">
+      <label for="histMode">CHANNEL</label>
+      <select id="histMode" disabled>
+        <option value="gray">Grayscale</option>
+        <option value="rgb">RGB Overlay</option>
+        <option value="red">Red Channel</option>
+        <option value="green">Green Channel</option>
+        <option value="blue">Blue Channel</option>
+      </select>
+    </div>
+
+    <div class="control">
+      <label for="histStart">INTENSITAS MINIMUM <span id="startLabel">0</span></label>
+      <input id="histStart" type="range" min="0" max="254" value="0" disabled>
+    </div>
+
+    <div class="control">
+      <label for="histEnd">INTENSITAS MAKSIMUM <span id="endLabel">255</span></label>
+      <input id="histEnd" type="range" min="1" max="255" value="255" disabled>
+    </div>
+  </div>
+
+  <div class="histogram-frame">
+    <div class="preview-title">
+      <span>04A / Frequency distribution</span>
+      <span id="chartRangeLabel">0–255</span>
+    </div>
+    <canvas id="histogramCanvas" width="1600" height="700"></canvas>
+    <div class="chart-axis-legend">
+      <span>0 — BLACK</span>
+      <span>PIXEL INTENSITY →</span>
+      <span>255 — WHITE</span>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat">
+      <small>TOTAL PIXELS</small>
+      <strong id="totalPixels">—</strong>
+    </div>
+    <div class="stat">
+      <small>MEAN INTENSITY</small>
+      <strong id="meanValue">—</strong>
+    </div>
+    <div class="stat">
+      <small>MEDIAN INTENSITY</small>
+      <strong id="medianValue">—</strong>
+    </div>
+    <div class="stat">
+      <small>MODE INTENSITY</small>
+      <strong id="modeValue">—</strong>
+    </div>
+  </div>
+
+  <div class="callout" id="histogramAnalysis">
+    Histogram akan menganalisis distribusi intensitas setelah tahap matriks selesai.
+  </div>
+
+  <p class="chart-hint">
+    Tip: ubah channel untuk membandingkan intensitas. Geser rentang minimum
+    dan maksimum untuk memperbesar area intensitas tertentu.
+    Statistik utama dihitung dari grayscale seluruh piksel.
+  </p>
+
+  <div class="action-row">
+    <button class="green" id="histogramBtn" disabled>ANALYZE HISTOGRAM →</button>
+    <button id="downloadHistogramBtn" disabled>EKSPOR CSV</button>
+    <button class="purple" id="downloadChartBtn" disabled>UNDUH GRAFIK PNG</button>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="section-heading">
+    <div class="step-no">↻</div>
+    <div class="heading-copy">
+      <h2>Project Control</h2>
+      <div class="subheading">Kelola hasil dan mulai kembali dengan foto lain.</div>
+    </div>
+  </div>
+  <div class="action-row">
+    <button class="dark" id="resetBtn">RESET SELURUH PROYEK</button>
+  </div>
+  <p class="help">
+    Reset akan menghapus hasil pemrosesan dari tampilan aplikasi.
+    Pilih foto baru untuk memulai analisis berikutnya.
+  </p>
+</section>
+
+<footer>
+  PIXEL LAB PRO — IMAGE PROCESSING STUDIO<br>
+  Built with HTML · CSS · JavaScript · Canvas API
+</footer>
+</div>
+
+<script>
+"use strict";
+
+// =============================================
+// 1. STATE DAN KONFIGURASI
+// =============================================
+
+const $ = id => document.getElementById(id);
+
+const MAX_FILE_BYTES = 15 * 1024 * 1024;
+const MAX_SIDE = 1600;
+const MAX_MATRIX_SIDE = 32;
+
+const state = {
+  originalReady: false,
+  grayReady: false,
+  matrixReady: false,
+  histogramReady: false,
+  originalImageData: null,
+  grayImageData: null,
+  originalWidth: 0,
+  originalHeight: 0,
+  width: 0,
+  height: 0,
+  filename: "pixel_lab",
+  matrix: [],
+  matrixStats: null,
+  channels: {
+    gray: new Array(256).fill(0),
+    red: new Array(256).fill(0),
+    green: new Array(256).fill(0),
+    blue: new Array(256).fill(0)
+  },
+  stats: null
+};
+
+const originalCanvas = $("originalCanvas");
+const grayCanvas = $("grayCanvas");
+const histogramCanvas = $("histogramCanvas");
+
+const originalCtx = originalCanvas.getContext("2d", {
+  willReadFrequently: true
+});
+
+const grayCtx = grayCanvas.getContext("2d", {
+  willReadFrequently: true
+});
+
+const chartCtx = histogramCanvas.getContext("2d");
+
+const channelColors = {
+  gray: "#333333",
+  red: "#ee4242",
+  green: "#159447",
+  blue: "#2789df"
+};
+
+// =============================================
+// 2. STATUS TAHAP DAN PROGRESS
+// =============================================
+
+function updateUI() {
+  const stages = [
+    state.originalReady,
+    state.grayReady,
+    state.matrixReady,
+    state.histogramReady
+  ];
+
+  stages.forEach((done, index) => {
+    const el = $("status" + (index + 1));
+    el.classList.toggle("done", done);
+    el.classList.toggle("active", !done && index === stages.findIndex(v => !v));
+
+    el.textContent = done
+      ? "SELESAI ✓"
+      : index === stages.findIndex(v => !v)
+        ? "LANGKAH AKTIF"
+        : "TERKUNCI 🔒";
+  });
+
+  const completed = stages.filter(Boolean).length;
+  $("completedCount").textContent = `${completed} / 4`;
+  $("progressText").textContent = `${completed * 25}%`;
+  $("progressFill").style.width = `${completed * 25}%`;
+
+  $("resolutionStat").textContent = state.originalReady
+    ? `${state.width} × ${state.height}`
+    : "—";
+
+  $("projectStat").textContent = state.histogramReady
+    ? "ANALISIS SELESAI"
+    : state.originalReady
+      ? "SEDANG DIPROSES"
+      : "MENUNGGU FOTO";
+
+  $("grayMethod").disabled = !state.originalReady || state.grayReady;
+  $("grayBtn").disabled = !state.originalReady || state.grayReady;
+  $("downloadOriginalBtn").disabled = !state.originalReady;
+  $("downloadGrayBtn").disabled = !state.grayReady;
+
+  $("matrixSample").disabled = !state.grayReady || state.matrixReady;
+  $("matrixBtn").disabled = !state.grayReady || state.matrixReady;
+  $("downloadMatrixBtn").disabled = !state.matrixReady;
+
+  $("histMode").disabled = !state.matrixReady;
+  $("histStart").disabled = !state.matrixReady;
+  $("histEnd").disabled = !state.matrixReady;
+  $("histogramBtn").disabled = !state.matrixReady || state.histogramReady;
+  $("downloadHistogramBtn").disabled = !state.histogramReady;
+  $("downloadChartBtn").disabled = !state.histogramReady;
+}
+
+function resetState() {
+  Object.assign(state, {
+    originalReady: false,
+    grayReady: false,
+    matrixReady: false,
+    histogramReady: false,
+    originalImageData: null,
+    grayImageData: null,
+    originalWidth: 0,
+    originalHeight: 0,
+    width: 0,
+    height: 0,
+    filename: "pixel_lab",
+    matrix: [],
+    matrixStats: null,
+    channels: {
+      gray: new Array(256).fill(0),
+      red: new Array(256).fill(0),
+      green: new Array(256).fill(0),
+      blue: new Array(256).fill(0)
+    },
+    stats: null
+  });
+
+  originalCanvas.hidden = true;
+  grayCanvas.hidden = true;
+
+  $("originalPlaceholder").hidden = false;
+  $("grayPlaceholder").hidden = false;
+  $("grayPlaceholder").textContent = "Menunggu proses grayscale.";
+
+  $("photoInfo").textContent =
+    "Nama file: —\nResolusi: —\nUkuran file: —\nFormat: —";
+
+  $("matrixPlaceholder").hidden = false;
+  $("matrixPlaceholder").textContent =
+    "Selesaikan grayscale untuk membuat matriks.";
+
+  $("matrixTable").hidden = true;
+  $("matrixTable").innerHTML = "";
+
+  $("matrixSize").textContent = "DIMENSI: —";
+  $("matrixMin").textContent = "MIN: —";
+  $("matrixMax").textContent = "MAX: —";
+  $("matrixMean").textContent = "MEAN: —";
+
+  ["totalPixels", "meanValue", "medianValue", "modeValue"]
+    .forEach(id => $(id).textContent = "—");
+
+  $("histogramAnalysis").textContent =
+    "Histogram akan menganalisis distribusi intensitas setelah tahap matriks selesai.";
+
+  chartCtx.clearRect(0, 0, histogramCanvas.width, histogramCanvas.height);
+
+  $("histMode").value = "gray";
+  $("histStart").value = 0;
+  $("histEnd").value = 255;
+  $("startLabel").textContent = "0";
+  $("endLabel").textContent = "255";
+  $("chartRangeLabel").textContent = "0–255";
+
+  updateUI();
+}
+
+// =============================================
+// 3. UPLOAD FOTO
+// =============================================
+
+$("fileInput").addEventListener("change", async event => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+    alert("Gunakan gambar JPG, PNG, atau WebP.");
+    event.target.value = "";
+    return;
+  }
+
+  if (file.size > MAX_FILE_BYTES) {
+    alert("Ukuran gambar maksimal 15 MB.");
+    event.target.value = "";
+    return;
+  }
+
+  try {
+    const image = await loadImage(file);
+    resetState();
+
+    state.originalWidth = image.naturalWidth;
+    state.originalHeight = image.naturalHeight;
+
+    const scale = Math.min(
+      1,
+      MAX_SIDE / image.naturalWidth,
+      MAX_SIDE / image.naturalHeight
+    );
+
+    state.width = Math.max(1, Math.round(image.naturalWidth * scale));
+    state.height = Math.max(1, Math.round(image.naturalHeight * scale));
+
+    originalCanvas.width = state.width;
+    originalCanvas.height = state.height;
+    grayCanvas.width = state.width;
+    grayCanvas.height = state.height;
+
+    originalCtx.clearRect(0, 0, state.width, state.height);
+    originalCtx.drawImage(image, 0, 0, state.width, state.height);
+
+    state.originalImageData = originalCtx.getImageData(
+      0, 0, state.width, state.height
+    );
+
+    state.filename = file.name
+      .replace(/\.[^.]+$/, "")
+      .replace(/[^\w-]/g, "_") || "pixel_lab";
+
+    originalCanvas.hidden = false;
+    $("originalPlaceholder").hidden = true;
+
+    $("photoInfo").innerHTML = `
+      <strong>Nama file</strong><br>${escapeHTML(file.name)}<br>
+      <strong>Format</strong><br>${escapeHTML(file.type)}<br>
+      <strong>Resolusi asli</strong><br>
+      ${state.originalWidth} × ${state.originalHeight} px<br>
+      <strong>Resolusi pemrosesan</strong><br>
+      ${state.width} × ${state.height} px<br>
+      <strong>Ukuran file</strong><br>
+      ${(file.size / 1024).toFixed(1)} KB
+    `;
+
+    state.originalReady = true;
+    updateUI();
+  } catch (error) {
+    console.error(error);
+    alert("Gambar gagal dibaca. Coba pilih file lain.");
+  }
+});
+
+function loadImage(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const image = new Image();
+
+    image.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve(image);
+    };
+
+    image.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Gagal memuat gambar."));
+    };
+
+    image.src = url;
+  });
+}
+
+function escapeHTML(value) {
+  return value.replace(/[&<>"']/g, c => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  })[c]);
+}
+
+// Drag and drop
+const dropzone = $("dropzone");
+
+dropzone.addEventListener("dragover", event => {
+  event.preventDefault();
+  dropzone.style.background = "#ffeaa1";
+});
+
+dropzone.addEventListener("dragleave", () => {
+  dropzone.style.background = "";
+});
+
+dropzone.addEventListener("drop", event => {
+  event.preventDefault();
+  dropzone.style.background = "";
+
+  const file = event.dataTransfer.files[0];
+  if (!file) return;
+
+  const transfer = new DataTransfer();
+  transfer.items.add(file);
+  $("fileInput").files = transfer.files;
+  $("fileInput").dispatchEvent(new Event("change"));
+});
+
+// =============================================
+// 4. GRAYSCALE ENGINE
+// =============================================
+
+$("grayMethod").addEventListener("change", updateFormula);
+
+function updateFormula() {
+  const formulas = {
+    luminance: "Gray = 0.299R + 0.587G + 0.114B",
+    average: "Gray = (R + G + B) / 3",
+    lightness: "Gray = (max(R,G,B) + min(R,G,B)) / 2"
+  };
+
+  $("formulaText").textContent = formulas[$("grayMethod").value];
+}
+
+$("grayBtn").addEventListener("click", () => {
+  if (!state.originalReady || state.grayReady) return;
+
+  const method = $("grayMethod").value;
+  const source = state.originalImageData;
+  const output = new ImageData(
+    new Uint8ClampedArray(source.data),
+    source.width,
+    source.height
+  );
+
+  const pixels = output.data;
+
+  for (let i = 0; i < pixels.length; i += 4) {
+    const r = source.data[i];
+    const g = source.data[i + 1];
+    const b = source.data[i + 2];
+
+    let gray;
+
+    if (method === "average") {
+      gray = (r + g + b) / 3;
+    } else if (method === "lightness") {
+      gray = (Math.max(r, g, b) + Math.min(r, g, b)) / 2;
+    } else {
+      gray = 0.299 * r + 0.587 * g + 0.114 * b;
+    }
+
+    gray = Math.round(gray);
+
+    pixels[i] = gray;
+    pixels[i + 1] = gray;
+    pixels[i + 2] = gray;
+    // Nilai alpha dipertahankan.
+  }
+
+  grayCtx.putImageData(output, 0, 0);
+  state.grayImageData = output;
+  state.grayReady = true;
+
+  grayCanvas.hidden = false;
+  $("grayPlaceholder").hidden = true;
+
+  updateUI();
+});
+
+// =============================================
+// 5. MATRIX LAB
+// =============================================
+
+$("matrixBtn").addEventListener("click", () => {
+  if (!state.grayReady || state.matrixReady) return;
+
+  buildMatrix();
+  renderMatrix();
+
+  state.matrixReady = true;
+  updateUI();
+});
+
+function buildMatrix() {
+  const { width, height } = state;
+  const data = state.grayImageData.data;
+
+  const requested = Number($("matrixSample").value);
+  const rows = Math.min(requested, height, MAX_MATRIX_SIDE);
+  const cols = Math.min(requested, width, MAX_MATRIX_SIDE);
+
+  const matrix = [];
+  let min = 255;
+  let max = 0;
+  let sum = 0;
+
+  for (let row = 0; row < rows; row++) {
+    const y = Math.min(
+      height - 1,
+      Math.floor((row + 0.5) * height / rows)
+    );
+
+    const values = [];
+
+    for (let col = 0; col < cols; col++) {
+      const x = Math.min(
+        width - 1,
+        Math.floor((col + 0.5) * width / cols)
+      );
+
+      const value = data[(y * width + x) * 4];
+
+      values.push(value);
+      min = Math.min(min, value);
+      max = Math.max(max, value);
+      sum += value;
+    }
+
+    matrix.push(values);
+  }
+
+  state.matrix = matrix;
+  state.matrixStats = {
+    rows,
+    cols,
+    min,
+    max,
+    mean: sum / (rows * cols)
+  };
+
+  $("matrixSize").textContent = `DIMENSI: ${rows} × ${cols}`;
+  $("matrixMin").textContent = `MIN: ${min}`;
+  $("matrixMax").textContent = `MAX: ${max}`;
+  $("matrixMean").textContent = `MEAN: ${(sum / (rows * cols)).toFixed(2)}`;
+}
+
+function renderMatrix() {
+  const table = $("matrixTable");
+  const matrix = state.matrix;
+
+  let html = "<thead><tr><th>ROW / COL</th>";
+
+  for (let col = 0; col < matrix[0].length; col++) {
+    html += `<th>${col + 1}</th>`;
+  }
+
+  html += "</tr></thead><tbody>";
+
+  matrix.forEach((row, rowIndex) => {
+    html += `<tr><th>${rowIndex + 1}</th>`;
+
+    row.forEach(value => {
+      const textColor = value > 150 ? "#111" : "#fff";
+      html += `<td title="Intensitas ${value}"
+        style="background:rgb(${value},${value},${value});color:${textColor}">
+        ${value}
+      </td>`;
+    });
+
+    html += "</tr>";
+  });
+
+  html += "</tbody>";
+
+  table.innerHTML = html;
+  table.hidden = false;
+  $("matrixPlaceholder").hidden = true;
+}
+
+// =============================================
+// 6. HISTOGRAM DARI SELURUH PIXEL
+// =============================================
+
+$("histogramBtn").addEventListener("click", () => {
+  if (!state.matrixReady || state.histogramReady) return;
+
+  calculateHistogram();
+  renderStatistics();
+
+  state.histogramReady = true;
+  updateUI();
+  drawHistogram();
+  analyzeHistogram();
+});
+
+function calculateHistogram() {
+  const channels = {
+    gray: new Array(256).fill(0),
+    red: new Array(256).fill(0),
+    green: new Array(256).fill(0),
+    blue: new Array(256).fill(0)
+  };
+
+  const original = state.originalImageData.data;
+  const gray = state.grayImageData.data;
+
+  let total = 0;
+  let min = 255;
+  let max = 0;
+
+  const frequencies = new Array(256).fill(0);
+
+  for (let i = 0; i < gray.length; i += 4) {
+    const r = original[i];
+    const g = original[i + 1];
+    const b = original[i + 2];
+    const value = gray[i];
+
+    channels.red[r]++;
+    channels.green[g]++;
+    channels.blue[b]++;
+    channels.gray[value]++;
+
+    frequencies[value]++;
+    total += value;
+    min = Math.min(min, value);
+    max = Math.max(max, value);
+  }
+
+  const count = gray.length / 4;
+
+  let cumulative = 0;
+  let median = 0;
+  const middle = Math.floor(count / 2);
+
+  for (let value = 0; value < 256; value++) {
+    cumulative += frequencies[value];
+
+    if (cumulative > middle) {
+      median = value;
+      break;
+    }
+  }
+
+  let mode = 0;
+
+  for (let value = 1; value < 256; value++) {
+    if (frequencies[value] > frequencies[mode]) {
+      mode = value;
+    }
+  }
+
+  state.channels = channels;
+  state.stats = {
+    count,
+    mean: total / count,
+    median,
+    mode,
+    min,
+    max
+  };
+}
+
+function renderStatistics() {
+  const s = state.stats;
+
+  $("totalPixels").textContent = s.count.toLocaleString("id-ID");
+  $("meanValue").textContent = s.mean.toFixed(2);
+  $("medianValue").textContent = s.median;
+  $("modeValue").textContent = s.mode;
+}
+
+// =============================================
+// 7. HISTOGRAM INTERAKTIF
+// =============================================
+
+$("histMode").addEventListener("change", () => {
+  if (state.histogramReady) drawHistogram();
+});
+
+$("histStart").addEventListener("input", () => {
+  let start = Number($("histStart").value);
+  let end = Number($("histEnd").value);
+
+  if (start >= end) {
+    end = Math.min(255, start + 1);
+    $("histEnd").value = end;
+  }
+
+  updateRangeLabels();
+  if (state.histogramReady) drawHistogram();
+});
+
+$("histEnd").addEventListener("input", () => {
+  let start = Number($("histStart").value);
+  let end = Number($("histEnd").value);
+
+  if (end <= start) {
+    start = Math.max(0, end - 1);
+    $("histStart").value = start;
+  }
+
+  updateRangeLabels();
+  if (state.histogramReady) drawHistogram();
+});
+
+function updateRangeLabels() {
+  $("startLabel").textContent = $("histStart").value;
+  $("endLabel").textContent = $("histEnd").value;
+  $("chartRangeLabel").textContent =
+    `${$("histStart").value}–${$("histEnd").value}`;
+}
+
+function drawHistogram() {
+  const ctx = chartCtx;
+  const width = histogramCanvas.width;
+  const height = histogramCanvas.height;
+
+  const left = 100;
+  const right = 35;
+  const top = 45;
+  const bottom = 90;
+
+  const plotWidth = width - left - right;
+  const plotHeight = height - top - bottom;
+
+  const start = Number($("histStart").value);
+  const end = Number($("histEnd").value);
+  const mode = $("histMode").value;
+
+  ctx.clearRect(0, 0, width, height);
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, width, height);
+
+  const series = mode === "rgb"
+    ? [
+        { data: state.channels.red, color: "rgba(235,50,50,.48)" },
+        { data: state.channels.green, color: "rgba(20,160,70,.48)" },
+        { data: state.channels.blue, color: "rgba(35,120,240,.48)" }
+      ]
+    : [{
+        data: state.channels[mode],
+        color: channelColors[mode]
+      }];
+
+  let maxFrequency = 1;
+
+  series.forEach(s => {
+    for (let i = start; i <= end; i++) {
+      maxFrequency = Math.max(maxFrequency, s.data[i]);
+    }
+  });
+
+  // Grid dan label frekuensi
+  ctx.font = "18px Arial";
+  ctx.fillStyle = "#171717";
+  ctx.strokeStyle = "#dedede";
+  ctx.lineWidth = 1;
+
+  for (let i = 0; i <= 5; i++) {
+    const y = top + plotHeight * i / 5;
+
+    ctx.beginPath();
+    ctx.moveTo(left, y);
+    ctx.lineTo(width - right, y);
+    ctx.stroke();
+
+    const value = Math.round(maxFrequency * (5 - i) / 5);
+
+    ctx.textAlign = "right";
+    ctx.fillText(value.toLocaleString("id-ID"), left - 14, y + 6);
+  }
+
+  const bins = end - start + 1;
+  const binWidth = plotWidth / bins;
+
+  series.forEach(s => {
+    ctx.fillStyle = s.color;
+
+    for (let intensity = start; intensity <= end; intensity++) {
+      const frequency = s.data[intensity];
+      const barHeight = frequency / maxFrequency * plotHeight;
+
+      ctx.fillRect(
+        left + (intensity - start) * binWidth,
+        top + plotHeight - barHeight,
+        Math.max(1, binWidth - 1),
+        barHeight
+      );
+    }
+  });
+
+  // Sumbu
+  ctx.strokeStyle = "#171717";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(left, top);
+  ctx.lineTo(left, top + plotHeight);
+  ctx.lineTo(width - right, top + plotHeight);
+  ctx.stroke();
+
+  // Label intensitas
+  ctx.font = "bold 18px Arial";
+  ctx.fillStyle = "#171717";
+  ctx.textAlign = "center";
+
+  const labels = [...new Set([
+    start,
+    Math.round(start + (end - start) / 4),
+    Math.round(start + (end - start) / 2),
+    Math.round(start + 3 * (end - start) / 4),
+    end
+  ])];
+
+  labels.forEach(value => {
+    const x = left + (value - start) / bins * plotWidth;
+
+    ctx.fillText(
+      String(value),
+      Math.max(left + 20, Math.min(width - right - 20, x)),
+      top + plotHeight + 30
+    );
+  });
+
+  ctx.font = "bold 20px Arial";
+  ctx.fillText(
+    "INTENSITAS PIKSEL",
+    left + plotWidth / 2,
+    height - 22
+  );
+
+  ctx.save();
+  ctx.translate(28, top + plotHeight / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.font = "bold 19px Arial";
+  ctx.fillText("FREKUENSI", 0, 0);
+  ctx.restore();
+
+  // Legenda RGB
+  if (mode === "rgb") {
+    const legend = [
+      { label: "RED", color: "#eb3232" },
+      { label: "GREEN", color: "#159447" },
+      { label: "BLUE", color: "#2789df" }
+    ];
+
+    ctx.font = "bold 17px Arial";
+    let x = left + 15;
+
+    legend.forEach(item => {
+      ctx.fillStyle = item.color;
+      ctx.fillRect(x, 12, 20, 20);
+      ctx.fillStyle = "#171717";
+      ctx.textAlign = "left";
+      ctx.fillText(item.label, x + 28, 29);
+      x += 145;
+    });
+  }
+}
+
+// =============================================
+// 8. ANALISIS HISTOGRAM
+// =============================================
+
+function analyzeHistogram() {
+  const s = state.stats;
+  const histogram = state.channels.gray;
+
+  const dark = histogram.slice(0, 86)
+    .reduce((sum, n) => sum + n, 0);
+
+  const middle = histogram.slice(86, 171)
+    .reduce((sum, n) => sum + n, 0);
+
+  const bright = histogram.slice(171, 256)
+    .reduce((sum, n) => sum + n, 0);
+
+  const darkPercent = dark / s.count * 100;
+  const brightPercent = bright / s.count * 100;
+
+  let message;
+
+  if (darkPercent > 60) {
+    message = "Gambar didominasi piksel gelap. Periksa apakah objek berada dalam kondisi pencahayaan rendah.";
+  } else if (brightPercent > 60) {
+    message = "Gambar didominasi piksel terang. Area putih atau pencahayaan tinggi cukup dominan.";
+  } else {
+    message = "Distribusi intensitas cukup tersebar atau berada pada rentang menengah.";
+  }
+
+  $("histogramAnalysis").textContent =
+    `${message} Piksel gelap: ${darkPercent.toFixed(1)}%, ` +
+    `piksel menengah: ${(middle / s.count * 100).toFixed(1)}%, ` +
+    `piksel terang: ${brightPercent.toFixed(1)}%. ` +
+    `Intensitas minimum ${s.min}, maksimum ${s.max}.`;
+}
+
+// =============================================
+// 9. EKSPOR FILE
+// =============================================
+
+$("downloadOriginalBtn").addEventListener("click", () => {
+  if (!state.originalReady) return;
+  downloadCanvas(originalCanvas, `${state.filename}_original.png`);
+});
+
+$("downloadGrayBtn").addEventListener("click", () => {
+  if (!state.grayReady) return;
+  downloadCanvas(grayCanvas, `${state.filename}_grayscale.png`);
+});
+
+$("downloadChartBtn").addEventListener("click", () => {
+  if (!state.histogramReady) return;
+  downloadCanvas(histogramCanvas, `${state.filename}_histogram.png`);
+});
+
+$("downloadMatrixBtn").addEventListener("click", () => {
+  if (!state.matrixReady) return;
+
+  const csv = [
+    ["ROW/COL", ...state.matrix[0].map((_, i) => i + 1)].join(","),
+    ...state.matrix.map((row, i) => [i + 1, ...row].join(","))
+  ].join("\n");
+
+  downloadCSV(csv, `${state.filename}_matrix.csv`);
+});
+
+$("downloadHistogramBtn").addEventListener("click", () => {
+  if (!state.histogramReady) return;
+
+  const csv = [
+    "Intensity,Grayscale,Red,Green,Blue",
+    ...Array.from({ length: 256 }, (_, i) => [
+      i,
+      state.channels.gray[i],
+      state.channels.red[i],
+      state.channels.green[i],
+      state.channels.blue[i]
+    ].join(","))
+  ].join("\n");
+
+  downloadCSV(csv, `${state.filename}_histogram.csv`);
+});
+
+function downloadCanvas(canvas, filename) {
+  canvas.toBlob(blob => {
+    if (!blob) {
+      alert("Gagal membuat file gambar.");
+      return;
+    }
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+
+    a.href = url;
+    a.download = filename;
+    a.click();
+
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }, "image/png");
+}
+
+function downloadCSV(content, filename) {
+  const blob = new Blob(["\uFEFF" + content], {
+    type: "text/csv;charset=utf-8"
+  });
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+
+  a.href = url;
+  a.download = filename;
+  a.click();
+
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// =============================================
+// 10. RESET PROYEK
+// =============================================
+
+$("resetBtn").addEventListener("click", () => {
+  if (!confirm("Reset seluruh proyek dan hapus hasil analisis?")) return;
+
+  $("fileInput").value = "";
+  resetState();
+});
+
+// Inisialisasi
+updateFormula();
+updateUI();
+</script>
+</body>
+</html>
