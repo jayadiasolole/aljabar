@@ -1,0 +1,395 @@
+
+import heapq
+import matplotlib.pyplot as plt
+from matplotlib.widgets import Button
+
+# ==================================================
+# 1. DATA PETA DAN JARAK ANTARPOS
+# ==================================================
+
+graf = {
+    "A": {"B": 2, "C": 4},
+    "B": {"A": 2, "D": 3, "E": 5},
+    "C": {"A": 4, "E": 1},
+    "D": {"B": 3, "E": 1, "G": 4},
+    "E": {"B": 5, "C": 1, "D": 1, "G": 3},
+    "G": {"D": 4, "E": 3}
+}
+
+# Perkiraan jarak dari setiap pos menuju Goal G
+heuristik = {
+    "A": 6,
+    "B": 5,
+    "C": 3,
+    "D": 3,
+    "E": 2,
+    "G": 0
+}
+
+# Koordinat pos untuk menggambar peta
+posisi = {
+    "A": (0, 2),
+    "B": (2, 4),
+    "C": (2, 2),
+    "D": (4, 4),
+    "E": (4, 1),
+    "G": (6, 2)
+}
+
+START = "A"
+GOAL = "G"
+
+
+# ==================================================
+# 2. ALGORITMA A* DAN PENCATATAN LANGKAH
+# ==================================================
+
+def astar(start, goal):
+    antrean = [(heuristik[start], 0, start)]
+    biaya = {start: 0}
+    asal = {}
+    selesai = set()
+    langkah = []
+
+    while antrean:
+        f, g, pos = heapq.heappop(antrean)
+
+        if pos in selesai:
+            continue
+
+        selesai.add(pos)
+
+        # Susun jalur sementara dari Start ke pos aktif
+        jalur = [pos]
+        titik = pos
+
+        while titik != start:
+            titik = asal[titik]
+            jalur.append(titik)
+
+        jalur.reverse()
+
+        # Simpan kondisi untuk setiap tahap simulasi
+        langkah.append({
+            "pos": pos,
+            "dikunjungi": set(selesai),
+            "biaya": g,
+            "nilai_f": f,
+            "jalur": jalur.copy(),
+            "rute": None
+        })
+
+        # Goal ditemukan
+        if pos == goal:
+            langkah[-1]["rute"] = jalur.copy()
+            return jalur, biaya[goal], langkah
+
+        # Periksa semua pos yang terhubung
+        for tetangga, jarak in graf[pos].items():
+            biaya_baru = biaya[pos] + jarak
+
+            if biaya_baru < biaya.get(
+                tetangga, float("inf")
+            ):
+                biaya[tetangga] = biaya_baru
+                asal[tetangga] = pos
+
+                nilai_f = biaya_baru + heuristik[tetangga]
+
+                heapq.heappush(
+                    antrean,
+                    (nilai_f, biaya_baru, tetangga)
+                )
+
+    return None, float("inf"), langkah
+
+
+rute, total_jarak, langkah = astar(START, GOAL)
+
+
+# ==================================================
+# 3. INFORMASI HASIL PENCARIAN
+# ==================================================
+
+print("=" * 40)
+print("       HASIL PENCARIAN A*")
+print("=" * 40)
+print("Start          :", START)
+print("Goal           :", GOAL)
+
+if rute:
+    print("Rute tercepat  :", " -> ".join(rute))
+    print("Total jarak    :", total_jarak)
+else:
+    print("Rute tidak ditemukan.")
+
+
+# ==================================================
+# 4. MEMBUAT JENDELA SIMULASI
+# ==================================================
+
+fig, ax = plt.subplots(figsize=(10, 7))
+
+fig.canvas.manager.set_window_title(
+    "Simulasi Algoritma A*"
+)
+
+plt.subplots_adjust(bottom=0.23)
+
+# Status simulasi
+status = {
+    "indeks": 0,
+    "berjalan": False
+}
+
+# Timer untuk mengatur perpindahan langkah
+timer = fig.canvas.new_timer(interval=1000)
+
+
+# ==================================================
+# 5. FUNGSI MENGGAMBAR PETA DAN LINTASAN
+# ==================================================
+
+def gambar_peta(indeks):
+    ax.clear()
+
+    data = langkah[indeks]
+    pos_aktif = data["pos"]
+    dikunjungi = data["dikunjungi"]
+    jalur = data["jalur"]
+    rute_akhir = data["rute"]
+
+    # Gambar semua jalan penghubung
+    for a in graf:
+        for b, jarak in graf[a].items():
+
+            # Gambar setiap jalan satu kali
+            if a < b:
+                x1, y1 = posisi[a]
+                x2, y2 = posisi[b]
+
+                ax.plot(
+                    [x1, x2],
+                    [y1, y2],
+                    color="lightgray",
+                    linewidth=2,
+                    zorder=1
+                )
+
+                # Tampilkan jarak pada jalan
+                xm = (x1 + x2) / 2
+                ym = (y1 + y2) / 2
+
+                ax.text(
+                    xm,
+                    ym + 0.13,
+                    str(jarak),
+                    fontsize=11,
+                    ha="center",
+                    va="center",
+                    bbox=dict(
+                        facecolor="white",
+                        edgecolor="none",
+                        alpha=0.9
+                    ),
+                    zorder=2
+                )
+
+    # Gambar garis lintasan yang mengikuti jalur
+    # Garis lama tetap terlihat selama pencarian
+    for i in range(len(jalur) - 1):
+        a = jalur[i]
+        b = jalur[i + 1]
+
+        x1, y1 = posisi[a]
+        x2, y2 = posisi[b]
+
+        ax.plot(
+            [x1, x2],
+            [y1, y2],
+            color="orange",
+            linewidth=5,
+            solid_capstyle="round",
+            zorder=3
+        )
+
+    # Jika Goal ditemukan, pastikan rute akhir terlihat
+    if rute_akhir:
+        for i in range(len(rute_akhir) - 1):
+            a = rute_akhir[i]
+            b = rute_akhir[i + 1]
+
+            x1, y1 = posisi[a]
+            x2, y2 = posisi[b]
+
+            ax.plot(
+                [x1, x2],
+                [y1, y2],
+                color="orange",
+                linewidth=5,
+                solid_capstyle="round",
+                zorder=3
+            )
+
+    # Gambar pos di atas garis
+    for nama, (x, y) in posisi.items():
+
+        if rute_akhir and nama in rute_akhir:
+            warna = "orange"
+        elif nama == pos_aktif:
+            warna = "red"
+        elif nama in dikunjungi:
+            warna = "skyblue"
+        elif nama == START:
+            warna = "limegreen"
+        elif nama == GOAL:
+            warna = "salmon"
+        else:
+            warna = "white"
+
+        ax.scatter(
+            x,
+            y,
+            s=1100,
+            c=warna,
+            edgecolors="black",
+            linewidths=2,
+            zorder=4
+        )
+
+        ax.text(
+            x,
+            y,
+            nama,
+            fontsize=15,
+            fontweight="bold",
+            ha="center",
+            va="center",
+            zorder=5
+        )
+
+    # Judul dan informasi tahap
+    ax.set_title(
+        f"SIMULASI A* - Langkah {indeks + 1}/{len(langkah)}\n"
+        f"Pos aktif: {pos_aktif} | "
+        f"g(n) = {data['biaya']} | "
+        f"f(n) = {data['nilai_f']}",
+        fontsize=13,
+        fontweight="bold"
+    )
+
+    if rute_akhir:
+        informasi = (
+            f"GOAL DITEMUKAN: {' -> '.join(rute_akhir)}"
+            f" | Total jarak = {total_jarak}"
+        )
+    else:
+        informasi = (
+            f"Lintasan sementara: {' -> '.join(jalur)}"
+        )
+
+    ax.text(
+        0.5,
+        -0.12,
+        informasi,
+        transform=ax.transAxes,
+        ha="center",
+        fontsize=11,
+        fontweight="bold"
+    )
+
+    ax.text(
+        0.5,
+        -0.19,
+        "Oranye = lintasan | Merah = pos aktif | "
+        "Biru = pos diperiksa",
+        transform=ax.transAxes,
+        ha="center",
+        fontsize=9
+    )
+
+    ax.set_xlim(-1, 7)
+    ax.set_ylim(0, 5)
+    ax.set_aspect("equal")
+    ax.axis("off")
+
+    fig.canvas.draw_idle()
+
+
+# ==================================================
+# 6. FUNGSI ANIMASI OTOMATIS
+# ==================================================
+
+def langkah_berikutnya():
+    if not status["berjalan"]:
+        return
+
+    # Berhenti jika semua langkah selesai
+    if status["indeks"] >= len(langkah) - 1:
+        status["berjalan"] = False
+        timer.stop()
+        return
+
+    status["indeks"] += 1
+    gambar_peta(status["indeks"])
+
+    # Hentikan timer ketika Goal ditemukan
+    if langkah[status["indeks"]]["rute"]:
+        status["berjalan"] = False
+        timer.stop()
+
+
+timer.add_callback(langkah_berikutnya)
+
+
+# ==================================================
+# 7. TOMBOL MULAI, JEDA, DAN RESET
+# ==================================================
+
+ax_mulai = plt.axes([0.15, 0.06, 0.20, 0.08])
+ax_jeda = plt.axes([0.40, 0.06, 0.20, 0.08])
+ax_reset = plt.axes([0.65, 0.06, 0.20, 0.08])
+
+btn_mulai = Button(ax_mulai, "Mulai")
+btn_jeda = Button(ax_jeda, "Jeda")
+btn_reset = Button(ax_reset, "Reset")
+
+
+def mulai(event):
+    if status["indeks"] >= len(langkah) - 1:
+        return
+
+    status["berjalan"] = True
+    timer.start()
+
+
+def jeda(event):
+    status["berjalan"] = False
+    timer.stop()
+
+
+def reset(event):
+    status["berjalan"] = False
+    timer.stop()
+
+    status["indeks"] = 0
+    gambar_peta(0)
+
+
+btn_mulai.on_clicked(mulai)
+btn_jeda.on_clicked(jeda)
+btn_reset.on_clicked(reset)
+
+
+# ==================================================
+# 8. JALANKAN PROGRAM
+# ==================================================
+
+gambar_peta(0)
+
+print("\nJendela simulasi telah disiapkan.")
+print("Klik tombol Mulai untuk memulai pencarian.")
+print("Klik Jeda untuk menghentikan sementara.")
+print("Klik Reset untuk mengulang dari awal.")
+
+plt.show()
