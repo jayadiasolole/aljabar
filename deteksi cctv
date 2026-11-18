@@ -1,0 +1,719 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CCTV Deteksi Bola Pingpong</title>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 20px;
+  background: #101827;
+  color: white;
+  font-family: Arial, sans-serif;
+  text-align: center;
+}
+
+h1 {
+  color: #38bdf8;
+}
+
+.kamera {
+  width: min(640px, 100%);
+  margin: 20px auto;
+}
+
+video {
+  display: none;
+}
+
+canvas {
+  display: block;
+  width: 100%;
+  border: 3px solid #38bdf8;
+  border-radius: 10px;
+  background: #263449;
+}
+
+button {
+  padding: 12px 22px;
+  margin: 8px;
+  border: none;
+  border-radius: 7px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+#mulai {
+  background: #22c55e;
+}
+
+#berhenti {
+  background: #ef4444;
+  color: white;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.panel {
+  max-width: 640px;
+  margin: 15px auto;
+  padding: 15px;
+  background: #1e293b;
+  border-radius: 10px;
+}
+
+.hasil {
+  font-size: 20px;
+  color: #facc15;
+  margin: 12px;
+}
+
+#status {
+  color: #38bdf8;
+}
+
+.keterangan {
+  color: #cbd5e1;
+  font-size: 14px;
+  line-height: 1.6;
+}
+</style>
+</head>
+
+<body>
+
+<h1>CCTV DETEKSI BOLA PINGPONG</h1>
+<p>Mendeteksi bola pingpong putih dan oranye</p>
+
+<div class="kamera">
+  <video id="video" autoplay playsinline></video>
+  <canvas id="hasil" width="640" height="480"></canvas>
+</div>
+
+<button id="mulai">Mulai Kamera</button>
+<button id="berhenti">Berhenti</button>
+
+<div class="panel">
+  <p id="status">Kamera belum dijalankan.</p>
+
+  <div class="hasil" id="jumlah">
+    Jumlah bola: 0
+  </div>
+
+  <div class="hasil" id="warna">
+    Warna: Belum terdeteksi
+  </div>
+
+  <p class="keterangan">
+    Warna yang dikenali: Putih dan Oranye<br>
+    Jarak pengujian: Sekitar 30–100 cm
+  </p>
+</div>
+
+<script>
+
+// =======================================
+// 1. PENGATURAN KAMERA DAN CANVAS
+// =======================================
+
+const W = 640;
+const H = 480;
+
+// Resolusi pemrosesan lebih kecil agar ringan
+const PW = 320;
+const PH = 240;
+const TOTAL = PW * PH;
+
+const video = document.getElementById("video");
+const canvas = document.getElementById("hasil");
+const ctx = canvas.getContext("2d");
+
+const prosesCanvas = document.createElement("canvas");
+prosesCanvas.width = PW;
+prosesCanvas.height = PH;
+
+const prosesCtx = prosesCanvas.getContext("2d", {
+  willReadFrequently: true
+});
+
+const status = document.getElementById("status");
+const jumlah = document.getElementById("jumlah");
+const warna = document.getElementById("warna");
+
+const tombolMulai = document.getElementById("mulai");
+const tombolBerhenti = document.getElementById("berhenti");
+
+let stream = null;
+let aktif = false;
+let animasi = null;
+let sesi = 0;
+
+
+// =======================================
+// 2. PENGENALAN WARNA RGB KE HSV
+// =======================================
+
+function rgbKeHsv(r, g, b) {
+
+  r /= 255;
+  g /= 255;
+  b /= 255;
+
+  const maks = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const delta = maks - min;
+
+  let h = 0;
+
+  const s = maks === 0 ? 0 : delta / maks;
+  const v = maks;
+
+  if (delta !== 0) {
+
+    if (maks === r) {
+      h = 60 * (((g - b) / delta) % 6);
+    }
+
+    else if (maks === g) {
+      h = 60 * ((b - r) / delta + 2);
+    }
+
+    else {
+      h = 60 * ((r - g) / delta + 4);
+    }
+
+  }
+
+  if (h < 0) h += 360;
+
+  return {
+    h: h / 2,
+    s: s * 255,
+    v: v * 255
+  };
+}
+
+
+// =======================================
+// 3. FILTER WARNA BOLA
+// =======================================
+
+function deteksiWarna(r, g, b) {
+
+  const hsv = rgbKeHsv(r, g, b);
+
+  const h = hsv.h;
+  const s = hsv.s;
+  const v = hsv.v;
+
+  // -----------------------------------
+  // BOLA PUTIH
+  // -----------------------------------
+
+  // Harus terang, tidak terlalu berwarna,
+  // dan komponen RGB relatif seimbang.
+
+  const selisihRGB =
+    Math.max(r, g, b) - Math.min(r, g, b);
+
+  if (
+    r > 140 &&
+    g > 140 &&
+    b > 140 &&
+    s < 55 &&
+    v > 175 &&
+    selisihRGB < 55
+  ) {
+    return 2;
+  }
+
+  // -----------------------------------
+  // BOLA ORANYE
+  // -----------------------------------
+
+  if (
+    h >= 5 &&
+    h <= 25 &&
+    s >= 100 &&
+    v >= 90
+  ) {
+    return 1;
+  }
+
+  // Selain putih dan oranye diabaikan
+  return 0;
+}
+
+
+// =======================================
+// 4. MEMBUAT PETA WARNA
+// =======================================
+
+function buatMask(imageData) {
+
+  const data = imageData.data;
+  const mask = new Uint8Array(TOTAL);
+
+  for (let i = 0; i < TOTAL; i++) {
+
+    const p = i * 4;
+
+    mask[i] = deteksiWarna(
+      data[p],
+      data[p + 1],
+      data[p + 2]
+    );
+
+  }
+
+  return mask;
+}
+
+
+// =======================================
+// 5. NAMA WARNA
+// =======================================
+
+function namaWarna(id) {
+
+  if (id === 1) return "Oranye";
+  if (id === 2) return "Putih";
+
+  return "Tidak diketahui";
+}
+
+
+// =======================================
+// 6. MENCARI KUMPULAN PIXEL
+// =======================================
+
+function cariBola(mask) {
+
+  const dikunjungi = new Uint8Array(TOTAL);
+  const antrean = new Int32Array(TOTAL);
+
+  const hasil = [];
+
+  for (let i = 0; i < TOTAL; i++) {
+
+    const idWarna = mask[i];
+
+    if (
+      idWarna === 0 ||
+      dikunjungi[i]
+    ) {
+      continue;
+    }
+
+    let depan = 0;
+    let belakang = 0;
+
+    antrean[belakang++] = i;
+    dikunjungi[i] = 1;
+
+    let minX = PW;
+    let minY = PH;
+    let maxX = 0;
+    let maxY = 0;
+
+    let luas = 0;
+    let keliling = 0;
+
+    // Menelusuri pixel yang berdekatan
+    while (depan < belakang) {
+
+      const pos = antrean[depan++];
+
+      const x = pos % PW;
+      const y = Math.floor(pos / PW);
+
+      luas++;
+
+      minX = Math.min(minX, x);
+      minY = Math.min(minY, y);
+      maxX = Math.max(maxX, x);
+      maxY = Math.max(maxY, y);
+
+      // Menghitung batas luar objek
+      const empatArah = [
+        x > 0 ? pos - 1 : -1,
+        x < PW - 1 ? pos + 1 : -1,
+        y > 0 ? pos - PW : -1,
+        y < PH - 1 ? pos + PW : -1
+      ];
+
+      for (const p of empatArah) {
+
+        if (
+          p < 0 ||
+          mask[p] !== idWarna
+        ) {
+          keliling++;
+        }
+
+      }
+
+      // Memeriksa delapan arah tetangga
+      for (let dy = -1; dy <= 1; dy++) {
+
+        for (let dx = -1; dx <= 1; dx++) {
+
+          if (dx === 0 && dy === 0) continue;
+
+          const nx = x + dx;
+          const ny = y + dy;
+
+          if (
+            nx < 0 ||
+            nx >= PW ||
+            ny < 0 ||
+            ny >= PH
+          ) {
+            continue;
+          }
+
+          const np = ny * PW + nx;
+
+          if (
+            !dikunjungi[np] &&
+            mask[np] === idWarna
+          ) {
+
+            dikunjungi[np] = 1;
+            antrean[belakang++] = np;
+
+          }
+
+        }
+
+      }
+
+    }
+
+    // =================================
+    // 7. ANALISIS BENTUK BOLA
+    // =================================
+
+    const lebar = maxX - minX + 1;
+    const tinggi = maxY - minY + 1;
+
+    const rasio = lebar / tinggi;
+
+    const kepadatan =
+      luas / (lebar * tinggi);
+
+    const circularity =
+      keliling > 0
+        ? (4 * Math.PI * luas) /
+          (keliling * keliling)
+        : 0;
+
+    // Ukuran objek untuk jarak sedang
+    if (luas < 45 || luas > 3500) continue;
+
+    if (lebar < 9 || tinggi < 9) continue;
+
+    if (lebar > 75 || tinggi > 75) continue;
+
+    // Bentuk harus hampir bulat
+    if (rasio < 0.75 || rasio > 1.33) continue;
+
+    // Kepadatan lingkaran
+    if (kepadatan < 0.50 || kepadatan > 0.95) continue;
+
+    // Tingkat kebulatan
+    if (circularity < 0.48) continue;
+
+    hasil.push({
+      x: minX,
+      y: minY,
+      lebar: lebar,
+      tinggi: tinggi,
+      nama: namaWarna(idWarna),
+      luas: luas
+    });
+
+  }
+
+  return hasil;
+}
+
+
+// =======================================
+// 8. MENGGAMBAR BOLA YANG TERDETEKSI
+// =======================================
+
+function gambarBola(bola) {
+
+  for (const item of bola) {
+
+    // Mengembalikan koordinat ke ukuran asli
+    const x = item.x * 2;
+    const y = item.y * 2;
+
+    const lebar = item.lebar * 2;
+    const tinggi = item.tinggi * 2;
+
+    const pusatX = x + lebar / 2;
+    const pusatY = y + tinggi / 2;
+
+    const radius = Math.max(
+      lebar,
+      tinggi
+    ) / 2;
+
+    // Lingkaran penanda
+    ctx.beginPath();
+
+    ctx.arc(
+      pusatX,
+      pusatY,
+      radius,
+      0,
+      Math.PI * 2
+    );
+
+    ctx.strokeStyle = "#22ff66";
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    // Nama bola
+    ctx.font = "bold 17px Arial";
+    ctx.fillStyle = "#22ff66";
+
+    ctx.fillText(
+      "BOLA " + item.nama,
+      x,
+      Math.max(22, y - 8)
+    );
+
+  }
+
+}
+
+
+// =======================================
+// 9. PROSES DETEKSI UTAMA
+// =======================================
+
+function deteksi() {
+
+  if (!aktif) return;
+
+  try {
+
+    // Mengambil gambar kamera
+    prosesCtx.drawImage(
+      video,
+      0,
+      0,
+      PW,
+      PH
+    );
+
+    // Menampilkan kamera
+    ctx.drawImage(
+      video,
+      0,
+      0,
+      W,
+      H
+    );
+
+    // Membaca data gambar
+    const imageData = prosesCtx.getImageData(
+      0,
+      0,
+      PW,
+      PH
+    );
+
+    // Menyeleksi warna
+    const mask = buatMask(imageData);
+
+    // Mencari objek berbentuk bola
+    const bola = cariBola(mask);
+
+    // Menggambar hasil deteksi
+    gambarBola(bola);
+
+    // Menghitung jumlah bola
+    jumlah.textContent =
+      "Jumlah bola: " + bola.length;
+
+    // Mengambil warna yang terdeteksi
+    const warnaUnik = [
+      ...new Set(
+        bola.map(item => item.nama)
+      )
+    ];
+
+    warna.textContent =
+      warnaUnik.length > 0
+        ? "Warna: " + warnaUnik.join(", ")
+        : "Warna: Belum terdeteksi";
+
+    status.textContent =
+      bola.length > 0
+        ? "Bola pingpong berhasil terdeteksi."
+        : "Kamera aktif. Mencari bola pingpong...";
+
+  }
+
+  catch (error) {
+
+    aktif = false;
+
+    status.textContent =
+      "Kesalahan deteksi: " + error.message;
+
+    console.error(error);
+
+    return;
+
+  }
+
+  if (aktif) {
+    animasi = requestAnimationFrame(deteksi);
+  }
+
+}
+
+
+// =======================================
+// 10. MULAI KAMERA
+// =======================================
+
+async function mulaiKamera() {
+
+  if (aktif) return;
+
+  const sesiSekarang = ++sesi;
+
+  tombolMulai.disabled = true;
+
+  try {
+
+    status.textContent = "Menghubungkan kamera...";
+
+    const kameraBaru =
+      await navigator.mediaDevices.getUserMedia({
+
+        video: {
+          width: { ideal: 640 },
+          height: { ideal: 480 },
+          facingMode: "environment"
+        },
+
+        audio: false
+
+      });
+
+    // Mencegah kamera aktif jika sudah dihentikan
+    if (sesiSekarang !== sesi) {
+
+      kameraBaru.getTracks().forEach(
+        track => track.stop()
+      );
+
+      return;
+    }
+
+    stream = kameraBaru;
+
+    video.srcObject = stream;
+
+    await video.play();
+
+    aktif = true;
+
+    tombolMulai.disabled = true;
+
+    status.textContent = "Kamera aktif.";
+
+    deteksi();
+
+  }
+
+  catch (error) {
+
+    status.textContent =
+      "Kamera gagal dibuka: " + error.message;
+
+    tombolMulai.disabled = false;
+
+  }
+
+}
+
+
+// =======================================
+// 11. BERHENTI KAMERA
+// =======================================
+
+function berhentiKamera() {
+
+  sesi++;
+
+  aktif = false;
+
+  if (animasi !== null) {
+
+    cancelAnimationFrame(animasi);
+    animasi = null;
+
+  }
+
+  if (stream) {
+
+    stream.getTracks().forEach(
+      track => track.stop()
+    );
+
+    stream = null;
+
+  }
+
+  video.srcObject = null;
+
+  ctx.clearRect(0, 0, W, H);
+
+  jumlah.textContent = "Jumlah bola: 0";
+
+  warna.textContent = "Warna: Belum terdeteksi";
+
+  status.textContent = "Kamera dihentikan.";
+
+  tombolMulai.disabled = false;
+
+}
+
+
+// =======================================
+// 12. TOMBOL PROGRAM
+// =======================================
+
+tombolMulai.addEventListener(
+  "click",
+  mulaiKamera
+);
+
+tombolBerhenti.addEventListener(
+  "click",
+  berhentiKamera
+);
+
+</script>
+
+</body>
+</html>
